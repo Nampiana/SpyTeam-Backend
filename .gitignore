@@ -1,0 +1,43 @@
+# Node modules
+node_modules/
+file/*
+file/
+# Logs
+logs
+*.log
+npm-debug.log*
+config.env
+
+# Environment variables
+.env
+.config.env
+
+# Build output
+dist/
+build/
+cert/
+./cert/*
+public/downloads/
+# Temporary files
+tmp/
+temp/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage/
+
+# IDE files
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Miscellaneous
+*.tgz
+
+.npm
+.eslintcache
+.stylelintcache
