@@ -27,7 +27,7 @@ app.set("trust proxy", (ip) => {
 // Configurer CORS
 app.use(
   cors({
-    origin: ["https://localhost:3000"],
+    origin: ["http://localhost:3000"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
