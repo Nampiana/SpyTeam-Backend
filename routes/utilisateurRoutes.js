@@ -5,6 +5,7 @@ import upload from '../utils/uploadFile.js';
 import checkRole from '../middleware/checkRole.js';
 
 const router = express.Router();
+router.get('/me', authController.protect, authController.checkToken);
 router.post('/login', authController.login);
 router.post('/logout', authController.logout);
 router.post('/password/resetPassword', authController.sendEmailResetPassword);

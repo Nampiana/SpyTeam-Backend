@@ -31,6 +31,7 @@ const utilisateurSchema = new mongoose.Schema(
     },
     // 1: admin
     // 2: superviseur
+    //3: client
     role: {
       type: Number,
       default: 2,

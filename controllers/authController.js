@@ -247,6 +247,23 @@ const updatePassword = catchAsync(async (req, res, next) => {
   createSendToken(user, 200, req, res);
 });
 
+const checkToken = catchAsync(async (req, res, next) => {
+  // Le middleware protect a déjà vérifié le token et attaché l'utilisateur à req.user
+  const user = await Utilisateur.findById(req.user.id).select('-password');
+  
+  if (!user) {
+    return next(new AppError('Aucun utilisateur trouvé avec cet ID', 404));
+  }
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      user
+    }
+  });
+});
+
+
 export default {
   login,
   logout,
@@ -255,4 +272,5 @@ export default {
   updatePassword,
   resetPassword,
   sendEmailResetPassword,
+  checkToken,
 };
