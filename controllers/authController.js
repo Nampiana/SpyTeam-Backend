@@ -214,38 +214,36 @@ const resetPassword = async (req, res, next) => {
 const updatePassword = catchAsync(async (req, res, next) => {
   const { ability } = req;
 
-  const user = await Utilisateur.findOne({ _id: req.params.id }).select(
-    "+password"
-  );
+  const user = await Utilisateur.findOne({ _id: req.params.id }).select("+password");
 
   if (!user) {
     return res.status(404).json({
-      error:
-        "Aucun document n’a été trouvé sur vous ou bien vous n’êtes pas autorisé!",
+      error: "Aucun document n’a été trouvé sur vous ou bien vous n’êtes pas autorisé!",
     });
   }
 
-  // i  
-
+  // Vérification du mot de passe actuel
   if (!(await user.correctPassword(req.body.passwordCurrent, user.password))) {
-    res.status(401).json({ error: "Votre mot de passe actuel est erroné." });
+    return res.status(401).json({ error: "Votre mot de passe actuel est erroné." });
   }
 
-  if (req.body.password == !req.body.passwordConfirm) {
-    res.status(401).json({
-      error: "Le mot de passe que vous avez saisis n'est pas conforme.",
+  // Vérification des nouveaux mots de passe
+  if (req.body.password !== req.body.passwordConfirm) {
+    return res.status(401).json({
+      error: "Le mot de passe que vous avez saisi n'est pas conforme.",
     });
   }
 
+  // Mise à jour du mot de passe
   user.password = req.body.password;
   user.passwordConfirm = req.body.passwordConfirm;
   user.passwordChangedAt = Date.now();
   await user.save();
-  const nomUtilisateur = user.prenom + " " + user.nom;
- // const message = bodyMail(2, null, null, null, nomUtilisateur);
-  await sendEmail.sends("Modification mot de passe", 2, user.email, nomUtilisateur, next);
+
+  // Envoi de la réponse avec un token mis à jour
   createSendToken(user, 200, req, res);
 });
+
 
 const checkToken = catchAsync(async (req, res, next) => {
   // Le middleware protect a déjà vérifié le token et attaché l'utilisateur à req.user
