@@ -14,7 +14,12 @@ config.env
 
 # Build output
 dist/
+capture/
 build/
+client/node_modules/
+client/windows/
+client/resources/
+client/dist/
 cert/
 ./cert/*
 public/downloads/

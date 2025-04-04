@@ -5,8 +5,9 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "nodemon server.js",
-    "test": "jest"
+    "start": "nodemon --config nodemon.json server.js",
+    "test": "jest",
+    "build": "electron-builder"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +23,7 @@
     "mongoose": "^8.12.2",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.2",
+    "socket.io": "^4.8.1",
     "validator": "^13.12.0"
   }
 }

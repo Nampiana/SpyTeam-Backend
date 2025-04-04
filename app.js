@@ -12,10 +12,17 @@ import { connectWithRetryMongo } from "./db/authenticationDb.js";
 import morgan from "morgan";
 import bodyParser from "body-parser";
 import dns from "dns";
+import fs from "fs";
 //import { createProxyMiddleware } from "http-proxy-middleware";
 connectWithRetryMongo();
 
 const app = express();
+app.use(cors());
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const captureDir = path.join(__dirname, "capture");
+app.use("/capture", express.static(captureDir));
 app.disable("x-powered-by");
 app.use(bodyParser.json());
 
@@ -25,13 +32,6 @@ app.set("trust proxy", (ip) => {
 });
 
 // Configurer CORS
-app.use(
-  cors({
-    origin: ["http://localhost:3000"],
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    credentials: true,
-  })
-);
 app.options("*", cors());
 
 // Configurer les middlewares de base
@@ -65,10 +65,26 @@ app.use((req, res, next) => {
   next();
 });
 
-// Configurer les fichiers statiques
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+app.get("/capture/:userId/:date", (req, res) => {
+  const { userId, date } = req.params;
+  const captureDir = path.join(__dirname, "capture", userId, date);
 
+  if (!fs.existsSync(captureDir)) {
+      return res.json([]); 
+  }
+
+  fs.readdir(captureDir, (err, files) => {
+      if (err) {
+          return res.status(500).json({ error: "Erreur serveur" });
+      }
+      const videos = files.filter(file => file.endsWith(".mp4"));
+      res.json(videos);
+  });
+});
+
+
+
+// Configurer les fichiers statiques
 
 // Routes de l'application
 const baseRoute = "/api/v1";
