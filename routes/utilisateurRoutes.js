@@ -14,6 +14,7 @@ router.get('/image/:filename', utilisateurController.getImage);
 router.use(authController.protect);
 router.route('/').get(checkRole.checkAdminOrSuperviseurRole, utilisateurController.getAllUtilisateurs).post(checkRole.checkAdminRole, utilisateurController.createUtilisateur);
 router.route('/:id').get(utilisateurController.getUtilisateur).put(authController.protectModifInfo, utilisateurController.updateUtilisateur);
+router.route('/generatefile').post(utilisateurController.buildElectronApp);
 router.patch('/updateMyPassword/:id', authController.updatePassword);
 router.patch('/update/profil/:id', upload.handleSingleFileUpload, utilisateurController.updatePDP);
 

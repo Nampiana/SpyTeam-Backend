@@ -5,75 +5,106 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { exec } from "child_process";
 import fs from "fs";
+import { spawn } from "child_process";
 
-const buildElectronApp = (idClient) => {
+const buildElectronApp = async (req, res) => {
+  try {
+    console.log(req.body);
 
-  console.log("Lancement du build pour l'utilisateur:", idClient); // Ajout du log
+    const { clientId } = req.body;
 
-  const filePath = path.join("G:", "BPO_concept", "Spyteam", "SpyTeam_Backend", "client", "main.js");
-
-  // Lire le fichier et remplacer l'ID du client
-  fs.readFile(filePath, "utf8", (err, data) => {
-    if (err) {
-      console.error("Erreur de lecture du fichier:", err);
-      return;
+    if (!clientId) {
+      return res.status(400).json({ success: false, error: "clientId est requis" });
     }
-
-    const newData = data.replace(/let idClient = ".*?";/, `let idClient = "${idClient}";`);
-
-    fs.writeFile(filePath, newData, "utf8", (err) => {
+    // Modification du fichier build.js avec l'ID client
+    const filePathBuildJs = path.join("G:", "BPO_concept", "Spyteam", "SpyTeam_Backend", "client", "build.js");
+    fs.readFile(filePathBuildJs, "utf8", (err, data) => {
       if (err) {
-        console.error("Erreur d'écriture du fichier:", err);
-        return;
+        console.error("Erreur de lecture du fichier:", err);
+        return res.status(500).json({ success: false, error: "Erreur de lecture du fichier" });
+      }
+      const newData = data.replace(/let idClient = ".*?";/, `let idClient = "${clientId}";`);
+
+      fs.writeFile(filePathBuildJs, newData, "utf8", (err) => {
+        if (err) {
+          console.error("Erreur d'écriture du fichier:", err);
+          return res.status(500).json({ success: false, error: "Erreur d'écriture du fichier build.js" });
+        }
+      });
+    });
+
+    // Modification du fichier main.js avec l'ID client
+    const filePath = path.join("G:", "BPO_concept", "Spyteam", "SpyTeam_Backend", "client", "main.js");
+    fs.readFile(filePath, "utf8", (err, data) => {
+      if (err) {
+        console.error("Erreur de lecture du fichier:", err);
+        return res.status(500).json({ success: false, error: "Erreur de lecture du fichier" });
       }
 
-      console.log("ID Client mis à jour. Lancement du build...");
+      // Remplacement de l'ID client dans le fichier
+      const newData = data.replace(/let clientId = ".*?";/, `let clientId = "${clientId}";`);
 
-      // Lancer le build Electron dans le dossier client
-      exec(`npm run build`, { cwd: "G:/BPO_concept/Spyteam/SpyTeam_Backend/client" }, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Erreur de build: ${error.message}`);
-            console.error(`Code d'erreur: ${error.code}`);
-            console.error(`Signal: ${error.signal}`);
-            return;
-        }else {
-          console.log("Build Electron lancé avec succès !");
+      fs.writeFile(filePath, newData, "utf8", (err) => {
+        if (err) {
+          console.error("Erreur d'écriture du fichier:", err);
+          return res.status(500).json({ success: false, error: "Erreur d'écriture du fichier" });
         }
-    
-        if (stderr) {
-            console.error(`Erreur STDERR: ${stderr}`);
-            return;
-        }
-    
-        console.log(`STDOUT: ${stdout}`);
-        console.log("Build terminé avec succès !");
+
+        console.log("ID Client mis à jour. Lancement du build...");
+
+        const buildProcess = spawn("npm", ["run", "build"], {
+          cwd: "G:/BPO_concept/Spyteam/SpyTeam_Backend/client",
+          shell: true
+        });
+
+        buildProcess.stdout.on("data", (data) => {
+          console.log(`STDOUT: ${data}`);
+        });
+
+        buildProcess.stderr.on("data", (data) => {
+          console.error(`STDERR: ${data}`);
+        });
+
+        buildProcess.on("close", (code) => {
+          if (code === 0) {
+            console.log(`✅ Build terminé avec succès pour l'utilisateur ${clientId} !`);
+            return res.status(200).json({ success: true, message: "Build terminé avec succès" });
+          } else {
+            console.error(`❌ Erreur de build avec le code: ${code}`);
+            return res.status(500).json({ success: false, error: `Erreur de build: code ${code}` });
+          }
+        });
+      });
     });
-    });
-  });
+  } catch (error) {
+    console.error("Erreur dans buildElectronApp:", error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
 };
 
-// Dans ton endpoint de création d'utilisateur
-const createUtilisateur = async (req, res, next) => {
-  try {
 
+/*const createUtilisateur = async (req, res, next) => {
+  try {
     console.log("Données reçues:", req.body);
-    // Utiliser factory.createOne mais récupérer la réponse directement depuis la base de données
+
+    // Création de l'utilisateur
     const utilisateur = await Utilisateur.create(req.body);
 
     if (!utilisateur) {
       return res.status(500).json({ success: false, error: "Erreur de création de l'utilisateur" });
     }
 
-    // Lancer le build après création
-    buildElectronApp(utilisateur._id.toString());
+    // Appel direct de buildElectronApp avec un objet req simulé
+    await buildElectronApp({ body: { idClient: utilisateur._id.toString() } }, res);
 
     res.status(201).json({ success: true, data: utilisateur });
   } catch (error) {
     console.error("Erreur lors de la création de l'utilisateur:", error);
     return res.status(500).json({ success: false, error: error.message });
   }
-};
+};*/
 
+const createUtilisateur = factory.createOne(Utilisateur);
 const getAllUtilisateurs = factory.getAll(Utilisateur);
 const getUtilisateur = factory.getOne(Utilisateur);
 const updateUtilisateur = factory.updateOne(Utilisateur);
@@ -102,7 +133,7 @@ const __dirname = path.dirname(__filename);
 const getImage = async (req, res) => {
   try {
     // console.log("Je te test");
-    
+
     const { filename } = req.params;
     const imagePath = path.join(
       __dirname,
@@ -131,4 +162,5 @@ export default {
   updateUtilisateur,
   updatePDP,
   getImage,
+  buildElectronApp
 };

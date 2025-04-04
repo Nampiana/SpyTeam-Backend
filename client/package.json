@@ -4,9 +4,11 @@
   "author": "BPO Concept",
   "description": "Application Electron sans interface graphique pour capture d'écran",
   "main": "main.js",
+  "type": "module",
   "scripts": {
     "start": "electron main.js",
-    "build": "electron-builder"
+    "test": "electron-builder",
+    "build": "node build.js"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
