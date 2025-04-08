@@ -42,7 +42,7 @@ const buildElectronApp = async (req, res) => {
       }
 
       // Remplacement de l'ID client dans le fichier
-      const newData = data.replace(/let clientId = ".*?";/, `let clientId = "${clientId}";`);
+      const newData = data.replace(/let idClient = ".*?";/, `let idClient = "${clientId}";`);
 
       fs.writeFile(filePath, newData, "utf8", (err) => {
         if (err) {
@@ -65,9 +65,18 @@ const buildElectronApp = async (req, res) => {
           console.error(`STDERR: ${data}`);
         });
 
-        buildProcess.on("close", (code) => {
+        buildProcess.on("close", async (code) => {
           if (code === 0) {
             console.log(`✅ Build terminé avec succès pour l'utilisateur ${clientId} !`);
+        
+            try {
+              // Mise à jour du champ buildStatus
+              await Utilisateur.findByIdAndUpdate(clientId, { buildStatus: "done" });
+              console.log(`🔄 Statut de build mis à jour pour l'utilisateur ${clientId}`);
+            } catch (updateError) {
+              console.error("❌ Erreur lors de la mise à jour du statut de build:", updateError);
+            }
+        
             return res.status(200).json({ success: true, message: "Build terminé avec succès" });
           } else {
             console.error(`❌ Erreur de build avec le code: ${code}`);

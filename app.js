@@ -82,6 +82,29 @@ app.get("/capture/:userId/:date", (req, res) => {
   });
 });
 
+app.get("/download/:clientId", (req, res) => {
+  const clientId = req.params.clientId;
+
+  // Chemin complet vers le fichier .exe
+  const exePath = path.join(__dirname, "client", "windows", clientId, "SpyTeam Setup 1.0.0.exe");
+
+  console.log("Chemin du fichier .exe :", exePath);
+  
+
+  // Vérifie si le fichier existe
+  if (fs.existsSync(exePath)) {
+    res.download(exePath, "SpyTeam Setup 1.0.0.exe", (err) => {
+      if (err) {
+        console.error("Erreur de téléchargement :", err);
+        res.status(500).send("Erreur lors du téléchargement du fichier.");
+      }
+    });
+  } else {
+    res.status(404).send("Fichier introuvable pour ce client.");
+  }
+});
+
+
 
 
 // Configurer les fichiers statiques

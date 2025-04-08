@@ -61,6 +61,14 @@ const utilisateurSchema = new mongoose.Schema(
       type: Number,
       default: 1,
     },
+    // 0: non build
+    // 1: en cours
+    // 2: en terminer
+    buildStatus: {
+      type: String,
+      enum: ["idle", "building", "done"],
+      default: "idle",
+    },
   },
   {
     timestamps: true,
