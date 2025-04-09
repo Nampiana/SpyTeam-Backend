@@ -1,7 +1,7 @@
 {
     "ignore": [
-      "G:/BPO_concept/Spyteam/SpyTeam_Backend/client/main.js",
-      "G:/BPO_concept/Spyteam/SpyTeam_Backend/client/*"
+      "/home/aroniaina/Documents/SpyTeam/SpyTeam-Backend/client/main.js",
+      "/home/aroniaina/Documents/SpyTeam/SpyTeam-Backend/client/*"
     ]
   }
   

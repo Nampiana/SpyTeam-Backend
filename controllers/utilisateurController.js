@@ -92,27 +92,6 @@ const buildElectronApp = async (req, res) => {
 };
 
 
-/*const createUtilisateur = async (req, res, next) => {
-  try {
-    console.log("Données reçues:", req.body);
-
-    // Création de l'utilisateur
-    const utilisateur = await Utilisateur.create(req.body);
-
-    if (!utilisateur) {
-      return res.status(500).json({ success: false, error: "Erreur de création de l'utilisateur" });
-    }
-
-    // Appel direct de buildElectronApp avec un objet req simulé
-    await buildElectronApp({ body: { idClient: utilisateur._id.toString() } }, res);
-
-    res.status(201).json({ success: true, data: utilisateur });
-  } catch (error) {
-    console.error("Erreur lors de la création de l'utilisateur:", error);
-    return res.status(500).json({ success: false, error: error.message });
-  }
-};*/
-
 const createUtilisateur = factory.createOne(Utilisateur);
 const getAllUtilisateurs = factory.getAll(Utilisateur);
 const getUtilisateur = factory.getOne(Utilisateur);

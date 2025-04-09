@@ -4,7 +4,6 @@
   "author": "BPO Concept",
   "description": "Application Electron sans interface graphique pour capture d'écran",
   "main": "main.js",
-  "type": "module",
   "scripts": {
     "start": "electron main.js",
     "test": "electron-builder",

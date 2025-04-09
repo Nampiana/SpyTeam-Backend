@@ -11,6 +11,7 @@ config.env
 # Environment variables
 .env
 .config.env
+*.env
 
 # Build output
 dist/
