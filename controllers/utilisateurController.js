@@ -1,4 +1,5 @@
 import Utilisateur from "../models/utilisateurModel.js";
+import Configuration from "../models/configuration.js";
 import factory from "./handelFactory.js";
 import catchAsync from "../utils/catchAsync.js";
 import path from "path";
@@ -113,7 +114,21 @@ const buildElectronApp = async (req, res) => {
   }
 };*/
 
-const createUtilisateur = factory.createOne(Utilisateur);
+const createUtilisateur = catchAsync(async (req, res, next) => {
+  // Créer l'utilisateur
+  const utilisateur = await Utilisateur.create(req.body);
+
+  await Configuration.create({
+    userId: utilisateur._id,
+  });
+
+  res.status(201).json({
+    status: "success",
+    data: utilisateur.toJSON({ virtuals: true }),
+  });
+});
+
+
 const getAllUtilisateurs = factory.getAll(Utilisateur);
 const getUtilisateur = factory.getOne(Utilisateur);
 const updateUtilisateur = factory.updateOne(Utilisateur);

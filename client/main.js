@@ -1,113 +1,198 @@
-const express = require("express");
-const { spawn, exec } = require("child_process");
-const http = require("http");
-const socketIo = require("socket.io-client");
-const os = require("os");
-const { app, screen, powerMonitor } = require("electron");
+import express from 'express';
+import { spawn, exec } from 'child_process';
+import http from 'http';
+import { io as socketIo } from 'socket.io-client';
+import os from 'os';
+import { app, screen, powerMonitor } from 'electron';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// 📁 Pour résoudre les chemins comme __dirname en ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 📦 Import du helper
+import helperModule from './helper/helper.js';
+const helper = helperModule.default || helperModule;
 
 const appli = express();
 const server = http.createServer(appli);
 let ffmpeg; // Stocke le processus FFmpeg pour le redémarrer si besoin
+let ffmpegImg;
 let io;
 const PORT = 9000;
 const serveurBackend = "http://192.168.1.177:4000";
+let idClient = "67f8e13939a13380a9077793";
 
-let idClient = "67e50bdcd4d9dd49536d6766";
-
-const helper = require("./helper/helper");
 let fileName = helper.generateFileName(idClient);
 let dateFolder = helper.generateDate();
 let isConnected = true;
 let resolution = "1280x720"; // Valeur par défaut
+let fpsVideo = "25";         // FPS par défaut
+let qualiteVideo = "6000k"; 
+let fpsImage = "fps=1/1";  
+let qualiteImage = "10";       // Qualité par défaut
 
+// 📦 Appliquer une nouvelle configuration
+function applyNewConfig(config) {
+  if (config.resolution) {
+    resolution = config.resolution;
+    console.log("🆕 Résolution mise à jour:", resolution);
+  }
+  if (config.fpsVideo) {
+    fpsVideo = config.fpsVideo.toString();
+    console.log("🆕 FPS mis à jour:", fpsVideo);
+  }
+  if (config.qualiteVideo) {
+    qualiteVideo = config.qualiteVideo.toString();
+    console.log("🆕 Qualité mise à jour:", qualiteVideo);
+  }
+  if (config.fpsImage) {
+    fpsImage = config.fpsImage.toString();
+    console.log("🆕 fpsImage mise à jour:", fpsImage);
+  }
+  if (config.qualiteImage) {
+    qualiteImage = config.qualiteImage.toString();
+    console.log("🆕 qualiteImage mise à jour:", qualiteImage);
+  }
+}
+
+// 📡 Connexion Socket.IO & écouteurs
+io = socketIo(serveurBackend);
+
+io.on("connect", () => {
+  console.log("🟢 Connexion réussie au serveur Socket.IO !");
+  io.emit("sendVideo", {
+    client: idClient,
+    fileName: fileName,
+    dateFolder: dateFolder,
+  });
+});
+
+io.on("config:update", (data) => {
+  console.log("🛠️ Config mise à jour :", data);
+  if (data.userId === idClient) {
+    stopCapture();
+    applyNewConfig(data.config);
+    restartCapture();
+  }
+});
+
+// 🎥 Démarrer la capture
 function startCapture() {
   const platform = os.platform();
 
   if (platform == "win32") {
-    const capture = "gdigrab"; // Utilisation de gdigrab pour Windows
-    const fps = "25"; // Nombre d'images par seconde
-    const captureOs = "desktop"; // Capture de l'écran complet
-    const qualite = "31"; // Qualité de compression (plus bas = meilleure qualité)
-    const format = "mp4"; // Format de sortie MJPEG
 
-    // Commande FFmpeg pour capturer l'écran et encoder en H.264
-    var ffmpeg = spawn("ffmpeg", [
-      "-f", capture,
-      "-r", fps.toString(),
+    console.log("🎬 Lancement FFmpeg avec : ", [
+      "-f", "dshow",
+         "-i", "video=screen-capture-recorder",
+         "-framerate", fpsVideo,
+         "-video_size", resolution,
+         "-vcodec", "libx264",
+         "-preset", "ultrafast",
+         "-tune", "zerolatency",
+         "-pix_fmt", "yuv420p",
+         "-b:v", qualiteVideo,
+         "-f", "mp4",
+         "-movflags", "frag_keyframe+empty_moov+default_base_moof",
+         "pipe:1",
+
+
+
+         "-f", "gdigrab",
+      "-framerate", "1",
+      "-video_size", resolution,
+      "-i", "desktop",
+      "-vf", fpsImage,
+      "-vcodec", "libwebp",
+      "-lossless", "0",
+      "-q:v", qualiteImage,
+      "-f", "image2pipe",
+      "pipe:1"
+    ]);
+    
+   
+       var ffmpeg = spawn("ffmpeg", [
+         "-f", "dshow",
+         "-i", "video=screen-capture-recorder",
+         "-framerate", fpsVideo,
+         "-video_size", resolution,
+         "-vcodec", "libx264",
+         "-preset", "ultrafast",
+         "-tune", "zerolatency",
+         "-pix_fmt", "yuv420p",
+         "-b:v", qualiteVideo,
+         "-f", "mp4",
+         "-movflags", "frag_keyframe+empty_moov+default_base_moof",
+         "pipe:1",
+       ]);
+
+    ffmpegImg = spawn("ffmpeg", [
+      "-f", "gdigrab",
+      "-framerate", "1",
+      "-video_size", resolution,
+      "-i", "desktop",
+      "-vf", fpsImage,
+      "-vcodec", "libwebp",
+      "-lossless", "0",
+      "-q:v", qualiteImage,
+      "-f", "image2pipe",
+      "pipe:1"
+    ]);
+  }
+
+  if (platform == "linux") {
+    ffmpeg = spawn("ffmpeg", [
+      "-f", "x11grab",
+      "-r", fps,
       "-s", resolution,
-      "-i", captureOs,
-      "-q:v", qualite.toString(),
+      "-i", ":0.0",
+      "-q:v", qualite,
       "-c:v", "libx264",
       "-preset", "veryfast",
       "-crf", "23",
       "-pix_fmt", "yuv420p",
       "-movflags", "frag_keyframe+empty_moov",
-      "-f", format,
-      "pipe:1",
-    ]);
-    var ffmpegImg = spawn("ffmpeg", [
-      "-f", "gdigrab",                 // Capture d'écran sous Windows
-      "-framerate", "1",               // Fréquence d'image (1 image par seconde)
-      "-video_size", resolution,       // Taille de la capture
-      "-i", "desktop",                 // Capture du bureau entier
-      "-vf", "fps=1/1",                // Une image par seconde
-      "-vcodec", "libwebp",            // Codec pour les images WebP
-      "-lossless", "0",                // Compression avec perte
-      "-q:v", "10",                    // Qualité (0-100, 100 est la meilleure)
-      "-f", "image2pipe",              // Sortie via pipe
+      "-f", "mp4",
       "pipe:1"
     ]);
-  }
-  if (platform == "linux") {
-    const capture = "x11grab";
-    const fps = "25";
-    const captureOs = ":0.0";
-    const qualite = "31";
-    const format = "mp4";
-    var ffmpeg = spawn("ffmpeg", [
-      "-f",capture, // Capture écran (Linux)
-      "-r",fps, // Taux d'images par seconde
-      "-s",resolution, // Résolution
-      "-i",captureOs, // Capture de l'écran (Linux)
-      "-q:v",qualite, // Qualité vidéo (valeur de 1 à 31, 5 est généralement bon)
-      "-c:v","libx264",
-      "-preset","veryfast",
-      "-crf","23",
-      "-pix_fmt","yuv420p",
-      "-movflags","frag_keyframe+empty_moov",
-      "-f",format, // Format de sortie MJPEG
-      "pipe:1", // Sortie via un flux
-    ]);
-   
-    var ffmpegImg = spawn("ffmpeg", [
+
+    ffmpegImg = spawn("ffmpeg", [
       "-f", "x11grab",
       "-video_size", resolution,
       "-i", ":0.0",
-      "-vf", "fps=1/1",  // Une image par seconde
+      "-vf", "fps=1/1",
       "-vcodec", "libwebp",
-      "-lossless", "0",  // Compression avec perte pour réduire la taille
-      "-q:v", "10",      // Qualité (0-100, 100 est la meilleure)
+      "-lossless", "0",
+      "-q:v", "10",
       "-f", "image2pipe",
       "pipe:1"
     ]);
   }
+
   ffmpegImg.stdout.on("data", (data) => {
-    io.emit("test", { data, client: idClient });   // Envoyer les données via WebSocket
+    io.emit("test", { data, client: idClient });
   });
+
   ffmpeg.stdout.on("data", (data) => {
     if (io) io.emit("video", { data, client: idClient, fileName: fileName });
   });
 }
 
-// Fonction pour arrêter FFmpeg
+// 🛑 Stopper la capture
 function stopCapture() {
   if (ffmpeg) {
     ffmpeg.kill("SIGTERM");
     ffmpeg = null;
   }
+  if (ffmpegImg) {
+    ffmpegImg.kill("SIGTERM");
+    ffmpegImg = null;
+  }
 }
 
-// Fonction pour redémarrer FFmpeg
+// 🔁 Redémarrer la capture
 function restartCapture() {
   fileName = helper.generateFileName(idClient);
   io.emit("sendVideo", {
@@ -118,12 +203,10 @@ function restartCapture() {
   startCapture();
 }
 
-
-// Gestion de la mise en veille et du réveil
+// 💻 Application prête
 app.whenReady().then(() => {
   const displays = screen.getAllDisplays();
-  let totalWidth = 0,
-    totalHeight = 0;
+  let totalWidth = 0, totalHeight = 0;
 
   displays.forEach((display) => {
     totalWidth += display.bounds.width;
@@ -131,24 +214,14 @@ app.whenReady().then(() => {
   });
 
   resolution = `${totalWidth}x${totalHeight}`;
-
-  io = socketIo(serveurBackend);
-  io.on("connect", () => {
-    io.emit("sendVideo", {
-      client: idClient,
-      fileName: fileName,
-      dateFolder: dateFolder,
-    });
-  });
-
-  startCapture(); // Démarrer la capture dès le lancement
+  startCapture();
 
   server.listen(PORT, () => {
     console.log("serveur running on port " + PORT);
   });
 });
 
-// Vérifier si l'ordinateur est toujours en ligne
+// 🌐 Vérifier la connexion
 function checkConnection() {
   exec("ping -c 1 google.com", (error) => {
     if (error) {
@@ -164,6 +237,7 @@ function checkConnection() {
   });
 }
 
+// ⚡️ Événements système
 powerMonitor.on("suspend", () => {
   stopCapture();
 });

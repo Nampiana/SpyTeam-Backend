@@ -31,4 +31,7 @@ const generateDate = () => {
     return folderName;
 };
 
-module.exports = { generateFileName, generateDate };
+export default {
+    generateFileName,
+    generateDate
+  };

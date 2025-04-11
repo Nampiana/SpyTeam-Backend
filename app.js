@@ -8,6 +8,7 @@ import AppError from "./utils/appError.js";
 import globalErrorHandler from "./controllers/errorController.js";
 import authRouter from "./routes/utilisateurRoutes.js";
 import utilisateurRouter from "./routes/utilisateurRoutes.js";
+import configurationRouter from "./routes/configRoutes.js";
 import { connectWithRetryMongo } from "./db/authenticationDb.js";
 import morgan from "morgan";
 import bodyParser from "body-parser";
@@ -17,6 +18,10 @@ import fs from "fs";
 connectWithRetryMongo();
 
 const app = express();
+app.use((req, res, next) => {
+  req.io = req.app.get('io'); // on lira io depuis l'app (voir plus bas)
+  next();
+});
 app.use(cors());
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -113,6 +118,7 @@ app.get("/download/:clientId", (req, res) => {
 const baseRoute = "/api/v1";
 app.use(`${baseRoute}/auth`, authRouter);
 app.use(`${baseRoute}/utilisateur`, utilisateurRouter);
+app.use(`${baseRoute}/configuration`, configurationRouter);
 
 // Gestion des requêtes mal formées
 app.all("*", (req, res, next) => {
