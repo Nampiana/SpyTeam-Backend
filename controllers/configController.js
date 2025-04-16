@@ -2,11 +2,11 @@ import Configuration from "../models/configuration.js";
 
 const upsertConfig = async (req, res) => {
   try {
-    const { userId, resolution, fpsVideo, qualiteVideo, fpsImage, qualiteImage } = req.body;
+    const { userId, fpsVideo, qualiteVideo, fpsImage, qualiteImage, timeout } = req.body;
 
     const config = await Configuration.findOneAndUpdate(
       { userId },
-      { resolution, fpsVideo, qualiteVideo, fpsImage, qualiteImage },
+      { fpsVideo, qualiteVideo, fpsImage, qualiteImage, timeout },
       { upsert: true, new: true }
     );
 

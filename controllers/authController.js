@@ -32,6 +32,8 @@ const createSendToken = (user, statusCode, req, res) => {
 };
 
 const login = catchAsync(async (req, res, next) => {
+  console.log(req.body);
+  
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -42,22 +44,26 @@ const login = catchAsync(async (req, res, next) => {
       })
     );
   }
-  const user = await Utilisateur.findOne({ email }).select("+password");
 
+  console.log("Tonga ato");
+  
+  const user = await Utilisateur.findOne({ email }).select("+password");
+  console.log("Tsy misy user");
+  
   if (!user || !(await user.correctPassword(password, user.password))) {
     res
       .status(401)
       .json({ status: "error", message: "Email ou mot de passe incorrecte!" });
   }
-
-  if (user.active === 0) {
-    return res.status(403).json({
-      status: "error",
-      message:
-        "Votre compte est désactivé. Veuillez contacter l'administrateur.",
-    });
-  }
-
+  console.log("misy user");
+  // if (user.active === 0) {
+  //   return res.status(403).json({
+  //     status: "error",
+  //     message:
+  //       "Votre compte est désactivé. Veuillez contacter l'administrateur.",
+  //   });
+  // }
+  console.log("user", user);
   createSendToken(user, 200, req, res);
 });
 

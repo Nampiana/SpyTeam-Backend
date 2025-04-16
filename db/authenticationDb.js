@@ -6,7 +6,7 @@ dotenv.config({ path: "config.env" });
 export const connectWithRetryMongo = () => {
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'local-development') {
         mongoose
-            .connect(`${process.env.DB_CONNECTION}`)
+            .connect(`${process.env.DB_CONNECTION_LOCAL}`)
             .then(() => console.log("DB connection successful!"))
             .catch((err) => {
                 console.log(err);
