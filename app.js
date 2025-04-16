@@ -8,6 +8,7 @@ import AppError from "./utils/appError.js";
 import globalErrorHandler from "./controllers/errorController.js";
 import authRouter from "./routes/utilisateurRoutes.js";
 import utilisateurRouter from "./routes/utilisateurRoutes.js";
+import Utilisateur from "./models/utilisateurModel.js";
 import configurationRouter from "./routes/configRoutes.js";
 import { connectWithRetryMongo } from "./db/authenticationDb.js";
 import morgan from "morgan";
@@ -109,13 +110,20 @@ app.get("/download/:clientId", (req, res) => {
   }
 });
 
-
-
-
 // Configurer les fichiers statiques
 
 // Routes de l'application
 const baseRoute = "/api/v1";
+
+app.get(`${baseRoute}/build-status`, async (req, res) => {
+  try {
+    const buildingUser = await Utilisateur.findOne({ buildStatus: 'building' });
+    res.json({ isBuilding: !!buildingUser });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
 app.use(`${baseRoute}/auth`, authRouter);
 app.use(`${baseRoute}/utilisateur`, utilisateurRouter);
 app.use(`${baseRoute}/configuration`, configurationRouter);
