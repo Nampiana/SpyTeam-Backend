@@ -15,6 +15,7 @@ import morgan from "morgan";
 import bodyParser from "body-parser";
 import dns from "dns";
 import fs from "fs";
+import ffmpeg from "fluent-ffmpeg";
 //import { createProxyMiddleware } from "http-proxy-middleware";
 connectWithRetryMongo();
 
@@ -59,8 +60,8 @@ if (process.env.NODE_ENV === "development") {
 
 // Limiter le nombre de requêtes par IP
 const limiter = rateLimit({
-  max: 1000,
-  windowMs: 60 * 60 * 1000,
+  max: 5000,
+  windowMs: 2 * 60 * 60 * 1000,
   message: "Too many requests from this IP, please try again in an hour!",
 });
 app.use("/api", limiter);
@@ -71,21 +72,44 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get("/capture/:userId/:date", (req, res) => {
+function isVideoValid(filePath) {
+  return new Promise((resolve) => {
+      ffmpeg.ffprobe(filePath, (err, metadata) => {
+          if (err || !metadata || !metadata.format || metadata.format.duration === 0) {
+              resolve(false); // Non lisible
+          } else {
+              resolve(true); // Lisible
+          }
+      });
+  });
+}
+
+app.get("/capture/:userId/:date", async (req, res) => {
   const { userId, date } = req.params;
   const captureDir = path.join(__dirname, "capture", userId, date);
 
   if (!fs.existsSync(captureDir)) {
-      return res.json([]); 
+      return res.json([]);
   }
 
-  fs.readdir(captureDir, (err, files) => {
-      if (err) {
-          return res.status(500).json({ error: "Erreur serveur" });
+  const files = fs.readdirSync(captureDir);
+  const videoFiles = files.filter(file => file.endsWith(".mp4"));
+
+  const validVideos = [];
+
+  for (const file of videoFiles) {
+      const filePath = path.join(captureDir, file);
+      const stats = fs.statSync(filePath);
+
+      if (stats.size > 0) {
+          const valid = await isVideoValid(filePath);
+          if (valid) {
+              validVideos.push(file);
+          }
       }
-      const videos = files.filter(file => file.endsWith(".mp4"));
-      res.json(videos);
-  });
+  }
+
+  res.json(validVideos);
 });
 
 app.get("/download/:clientId", (req, res) => {
